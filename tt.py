@@ -9,7 +9,7 @@ class TaskTracker:
     def __init__(self) -> None:
         self.filename = "task.json"
         try:
-            with open(self.filename, "r") as f:
+            with open(self.filename, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 self.tasks = data.get("tasks", [])
         except (FileNotFoundError, json.JSONDecodeError):
@@ -20,10 +20,11 @@ class TaskTracker:
         def wrapper(self, *args, **kwargs):
             result = taskfunc(self, *args, **kwargs)
             try:
-                with open(self.filename, "w") as f:
-                    json.dump({"tasks": self.tasks}, f, indent=4)
-            except Exception:
-                raise IOError("could not write data to file.")
+                with open(self.filename, "w", encoding="utf-8") as f:
+                    json.dump({"tasks": self.tasks}, f,
+                              indent=4, ensure_ascii=False)
+            except Exception as exc:
+                raise IOError("could not write data to file.") from exc
 
             return result
 
