@@ -46,15 +46,55 @@ class TaskTracker:
         self.tasks.append(task_data)
         return task_data["id"]
 
+    def list_tasks(self, filter: str = None) -> list:
+        if filter is None:
+            return self.tasks
+        filtered_list = []
+        for t in self.tasks:
+            if t["status"] == filter:
+                filtered_list.append(t)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Tasktracker CLI")
-    parser.add_argument("task", help="add task")
+
+    subparsers = parser.add_subparsers(dest="command")
+
+    # add tasks
+    add_task_parser = subparsers.add_parser("add", help="adds new task")
+    add_task_parser.add_argument("text", help="task to save")
+
+    # list tasks
+    list_task_parser = subparsers.add_parser("list", help="lists all tasks")
+    list_task_parser.add_argument(
+        "stat",
+        type=str,
+        nargs="?",
+        help="group according to it's status"
+    )
 
     args = parser.parse_args()
 
     tracker = TaskTracker()
-    tracker.add_task(args.task)
+
+    try:
+        if args.command == "add":
+            tracker.add_task(args.text)
+            print(f"Task successfully added, (ID: {len(tracker.tasks)})")
+        if args.command == "list":
+            tasks = tracker.list_tasks(args.stat)
+            if not tasks:
+                print(
+                    f"No tasks found{' with status: ' + args.stat if args.stat else ''}"
+                )
+            else:
+                print(
+                    f"Tasks{' with status: ' + args.stat if args.stat else ''}:")
+                for task in tasks:
+                    print(
+                        f"[{task['id']}] {task['description']} - {task['status']}")
+    except Exception as e:
+        print(f"[error] {e}")
 
 
 if __name__ == "__main__":
