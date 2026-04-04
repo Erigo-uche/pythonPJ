@@ -1,6 +1,7 @@
 import argparse
 import json
 from datetime import datetime
+from typing import Optional
 
 
 class TaskTracker:
@@ -8,6 +9,9 @@ class TaskTracker:
 
     def __init__(self) -> None:
         self.filename = "task.json"
+        time = datetime.now()
+        self.currentTime = time.strftime("%m/%d/%Y, %H:%M:%S")
+
         try:
             with open(self.filename, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -24,7 +28,8 @@ class TaskTracker:
                     json.dump({"tasks": self.tasks}, f,
                               indent=4, ensure_ascii=False)
             except Exception as exc:
-                raise IOError("could not write data to file.") from exc
+                print("Real ERROR:", repr(exc))
+                raise
 
             return result
 
@@ -34,25 +39,53 @@ class TaskTracker:
     def add_task(self, task: str) -> int:
         if not task.strip():
             raise ValueError("please add a task.")
-        time = datetime.now()
-        currentTime = time.strftime("%m/%d/%Y, %H:%M:%S")
+
         task_data = {
             "id": max((t["id"] for t in self.tasks), default=0) + 1,
             "description": task,
             "status": "todo",
-            "createdat": currentTime,
-            "updatedat": currentTime
+            "createdat": self.currentTime,
+            "updatedat": self.currentTime
         }
         self.tasks.append(task_data)
         return task_data["id"]
 
-    def list_tasks(self, filter: str = None) -> list:
+    def list_tasks(self, filter: Optional[str] = None) -> list:
         if filter is None:
             return self.tasks
         filtered_list = []
         for t in self.tasks:
             if t["status"] == filter:
                 filtered_list.append(t)
+            return filtered_list
+
+    @user_input_decorator
+    def update_tasks(self,
+                     id: Optional[int] = None,
+                     task: Optional[str] = None,
+                     status: Optional[str] = None
+                     ) -> None:
+
+        if id is None:
+            print("Tasks:")
+            for t in self.tasks:
+                print(f"[{t['id']}] {t['description']} - {t['status']}")
+
+        id = int(input("\nTask_ID: "))
+        task = input("update task: ").strip
+        status = input('update status: ').strip
+
+        for t in self.tasks:
+            if t["id"] == id:
+                if task:
+                    t["description"] = task
+                if status:
+                    t["status"] = status
+
+                t["updatedat"] = self.currentTime
+                return
+
+        raise IndexError(f"Task with ID {id} does not exist.")
 
 
 def main():
@@ -72,6 +105,14 @@ def main():
         nargs="?",
         help="group according to it's status"
     )
+
+    # update_task/status
+    update_task_parser = subparsers.add_parser(
+        "update", help="update a task or status")
+    update_task_parser.add_argument(
+        "id", type=int, nargs="?", help="finds the target task")
+    update_task_parser.add_argument("--task", help="new task")
+    update_task_parser.add_argument("--status", help="change in status")
 
     args = parser.parse_args()
 
@@ -93,6 +134,10 @@ def main():
                 for task in tasks:
                     print(
                         f"[{task['id']}] {task['description']} - {task['status']}")
+        if args.command == "update":
+            tracker.update_tasks(args.id, args.task, args.status)
+            print(f"Task successfully updated at {tracker.currentTime}")
+
     except Exception as e:
         print(f"[error] {e}")
 
