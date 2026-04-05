@@ -83,11 +83,11 @@ class TaskTracker:
             print("Tasks:")
             for t in self.tasks:
                 print(f"[{t['id']}] {t['description']} - {t['status']}")
-        try:
-            id = int(input("\nTask_ID: "))
-        except ValueError:
-            print("Invalid ID.")
-            return
+            try:
+                id = int(input("\nTask_ID: "))
+            except ValueError:
+                print("Invalid ID.")
+                return
 
         for t in self.tasks:
             if t["id"] == id:
