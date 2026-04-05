@@ -2,6 +2,7 @@ import argparse
 import json
 from datetime import datetime
 from typing import Optional
+import os
 
 
 class TaskTracker:
@@ -9,8 +10,6 @@ class TaskTracker:
 
     def __init__(self) -> None:
         self.filename = "task.json"
-        time = datetime.now()
-        self.currentTime = time.strftime("%m/%d/%Y, %H:%M:%S")
 
         try:
             with open(self.filename, "r", encoding="utf-8") as f:
@@ -19,14 +18,23 @@ class TaskTracker:
         except (FileNotFoundError, json.JSONDecodeError):
             self.tasks = []
 
+    def get_time(self):
+        return datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+
     @staticmethod
     def user_input_decorator(taskfunc):
         def wrapper(self, *args, **kwargs):
             result = taskfunc(self, *args, **kwargs)
+
+            temp_file = self.filename + ".tmp"
+
             try:
-                with open(self.filename, "w", encoding="utf-8") as f:
+                with open(temp_file, "w", encoding="utf-8") as f:
                     json.dump({"tasks": self.tasks}, f,
                               indent=4, ensure_ascii=False)
+
+                os.replace(temp_file, self.filename)  # safe replace
+
             except Exception as exc:
                 print("Real ERROR:", repr(exc))
                 raise
@@ -44,8 +52,8 @@ class TaskTracker:
             "id": max((t["id"] for t in self.tasks), default=0) + 1,
             "description": task,
             "status": "todo",
-            "createdat": self.currentTime,
-            "updatedat": self.currentTime
+            "createdat": self.get_time(),
+            "updatedat": self.get_time()
         }
         self.tasks.append(task_data)
         return task_data["id"]
@@ -57,32 +65,44 @@ class TaskTracker:
         for t in self.tasks:
             if t["status"] == filter:
                 filtered_list.append(t)
-            return filtered_list
+        return filtered_list
 
     @user_input_decorator
     def update_tasks(self,
                      id: Optional[int] = None,
-                     task: Optional[str] = None,
-                     status: Optional[str] = None
+                     n_task: Optional[str] = None,
+                     n_status: Optional[str] = None
                      ) -> None:
 
+        if not self.tasks:
+            print("No tasks available.")
+            return
+
+        # if no ID, shows tasks and ask user
         if id is None:
             print("Tasks:")
             for t in self.tasks:
                 print(f"[{t['id']}] {t['description']} - {t['status']}")
-
-        id = int(input("\nTask_ID: "))
-        task = input("update task: ").strip
-        status = input('update status: ').strip
+        try:
+            id = int(input("\nTask_ID: "))
+        except ValueError:
+            print("Invalid ID.")
+            return
 
         for t in self.tasks:
             if t["id"] == id:
-                if task:
-                    t["description"] = task
-                if status:
-                    t["status"] = status
 
-                t["updatedat"] = self.currentTime
+                if n_task is None:
+                    n_task = input("update task: ").strip()
+                if n_status is None:
+                    n_status = input('update status: ').strip()
+
+                if n_task:
+                    t["description"] = n_task
+                if n_status:
+                    t["status"] = n_status
+
+                t["updatedat"] = self.get_time()
                 return
 
         raise IndexError(f"Task with ID {id} does not exist.")
@@ -136,7 +156,7 @@ def main():
                         f"[{task['id']}] {task['description']} - {task['status']}")
         if args.command == "update":
             tracker.update_tasks(args.id, args.task, args.status)
-            print(f"Task successfully updated at {tracker.currentTime}")
+            print(f"Task successfully updated at {tracker.get_time()}")
 
     except Exception as e:
         print(f"[error] {e}")
