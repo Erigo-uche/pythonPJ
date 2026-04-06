@@ -107,6 +107,39 @@ class TaskTracker:
 
         raise IndexError(f"Task with ID {id} does not exist.")
 
+    def delete_task(self, t_status: Optional[str] = None):
+        if not self.tasks:
+            print("No tasks available.")
+            return
+
+        if t_status is None:
+            print("Tasks:")
+            for t in self.tasks:
+                print(f"[{t['id']}] {t['description']} - {t['status']}")
+            try:
+                id = int(input("\nTask_ID: "))
+            except ValueError:
+                print("Invalid ID.")
+                return
+
+            for i, t in enumerate(self.tasks):
+                if t["id"] == id:
+                    self.tasks.pop(i)
+                    return
+
+            raise IndexError(f"Task with ID {id} does not exist.")
+
+        else:
+            original_length = len(self.tasks)
+
+            # remove all matching tasks safely
+            self.tasks = [t for t in self.tasks if t["status"] != t_status]
+
+            if len(self.tasks) == original_length:
+                raise IndexError(f"No tasks with status '{t_status}' found.")
+
+            print(f"Tasks with status '{t_status}' deleted.")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Tasktracker CLI")
@@ -126,13 +159,19 @@ def main():
         help="group according to it's status"
     )
 
-    # update_task/status
+    # update task/status
     update_task_parser = subparsers.add_parser(
         "update", help="update a task or status")
     update_task_parser.add_argument(
         "id", type=int, nargs="?", help="finds the target task")
     update_task_parser.add_argument("--task", help="new task")
     update_task_parser.add_argument("--status", help="change in status")
+
+    # delete task
+    delete_task_parser = subparsers.add_parser(
+        "delete", help="deletes selected task")
+    delete_task_parser.add_argument(
+        "status", type=str, nargs="?", help="deletes all task with that status")
 
     args = parser.parse_args()
 
@@ -157,6 +196,8 @@ def main():
         if args.command == "update":
             tracker.update_tasks(args.id, args.task, args.status)
             print(f"Task successfully updated at {tracker.get_time()}")
+        if args.command == "delete":
+            tracker.delete_task(args.status)
 
     except Exception as e:
         print(f"[error] {e}")
