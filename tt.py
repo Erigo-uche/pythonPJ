@@ -6,7 +6,6 @@ import os
 
 
 class TaskTracker:
-    # Handles the task tracking.
 
     def __init__(self) -> None:
         self.filename = "task.json"
@@ -21,11 +20,12 @@ class TaskTracker:
     def get_time(self):
         return datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
+    # saves user input or changes
     @staticmethod
     def user_input_decorator(taskfunc):
         def wrapper(self, *args, **kwargs):
             result = taskfunc(self, *args, **kwargs)
-
+            # tempfile for safety when saving file
             temp_file = self.filename + ".tmp"
 
             try:
@@ -58,6 +58,7 @@ class TaskTracker:
         self.tasks.append(task_data)
         return task_data["id"]
 
+    # lists all the tasks or status-filtered task
     def list_tasks(self, filter: Optional[str] = None) -> list:
         if filter is None:
             return self.tasks
@@ -107,11 +108,12 @@ class TaskTracker:
 
         raise IndexError(f"Task with ID {id} does not exist.")
 
+    @user_input_decorator
     def delete_task(self, t_status: Optional[str] = None):
         if not self.tasks:
             print("No tasks available.")
             return
-
+        # when status to delete isn't provided through CLI
         if t_status is None:
             print("Tasks:")
             for t in self.tasks:
@@ -128,7 +130,7 @@ class TaskTracker:
                     return
 
             raise IndexError(f"Task with ID {id} does not exist.")
-
+        # when status to delete is provided through CLI
         else:
             original_length = len(self.tasks)
 
@@ -138,9 +140,8 @@ class TaskTracker:
             if len(self.tasks) == original_length:
                 raise IndexError(f"No tasks with status '{t_status}' found.")
 
-            print(f"Tasks with status '{t_status}' deleted.")
 
-
+# The CLI component: Argparse
 def main():
     parser = argparse.ArgumentParser(description="Tasktracker CLI")
 
@@ -198,6 +199,7 @@ def main():
             print(f"Task successfully updated at {tracker.get_time()}")
         if args.command == "delete":
             tracker.delete_task(args.status)
+            print(f"Tasks with status '{args.status}' deleted.")
 
     except Exception as e:
         print(f"[error] {e}")
